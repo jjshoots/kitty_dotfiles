@@ -1,21 +1,23 @@
-# Give every tab its own colour in the tab bar.
+# Give every tab its own colour and emoji in the tab bar.
 #
 # Loaded as a global watcher (`watcher tab_colors.py` in kitty.conf). Whenever
 # the tab bar is about to be redrawn, any tab without a colour is given the
-# first palette colour not already used by another tab in that OS window. The
-# colour is stored on the tab itself, so it follows the tab when it is moved.
+# first palette entry not already used by another tab in that OS window. The
+# colour and emoji are stored on the tab itself, so they follow the tab when it
+# is moved. tab_bar.py draws the emoji next to the tab number.
 
-# accent colours from themes/my-theme.conf (Kaolin Ocean)
+# accent colours from themes/my-theme.conf (Kaolin Ocean), each with a
+# matching emoji
 PALETTE = (
-    0x6bd9db,  # cyan
-    0xe84c58,  # red
-    0x35bf88,  # green
-    0xdbac66,  # yellow
-    0x4ca6e8,  # blue
-    0xc79af4,  # magenta
-    0xeed891,  # light yellow
-    0xcea2ca,  # pink
-    0x7cf083,  # light green
+    (0x6bd9db, '🐬'),  # cyan
+    (0xe84c58, '🍒'),  # red
+    (0x35bf88, '🌵'),  # green
+    (0xdbac66, '🦊'),  # yellow
+    (0x4ca6e8, '🐳'),  # blue
+    (0xc79af4, '🔮'),  # magenta
+    (0xeed891, '🍋'),  # light yellow
+    (0xcea2ca, '🌸'),  # pink
+    (0x7cf083, '🐸'),  # light green
 )
 BACKGROUND = 0x14141e
 FOREGROUND = 0xe6e6e8
@@ -33,15 +35,15 @@ def blend(color: int, base: int, amount: float) -> int:
     return out
 
 
-def pick_color(tabs) -> int:
+def pick_entry(tabs) -> tuple[int, str]:
     used = [t.tab_color for t in tabs if getattr(t, 'tab_color', None) is not None]
-    return min(PALETTE, key=lambda c: (used.count(c), PALETTE.index(c)))
+    return min(PALETTE, key=lambda e: (used.count(e[0]), PALETTE.index(e)))
 
 
 def on_tab_bar_dirty(boss, window, data) -> None:
     tabs = data['tab_manager'].tabs
     for tab in tabs:
         if getattr(tab, 'tab_color', None) is None:
-            tab.tab_color = color = pick_color(tabs)
+            tab.tab_color, tab.tab_emoji = color, _ = pick_entry(tabs)
             tab.active_bg, tab.active_fg = blend(0xffffff, color, ACTIVE_LIGHTEN), BACKGROUND
             tab.inactive_bg, tab.inactive_fg = blend(color, 0x000000, INACTIVE_KEEP), FOREGROUND

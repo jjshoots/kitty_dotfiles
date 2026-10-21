@@ -8,5 +8,9 @@ def draw_title(data: dict) -> str:
     tab = get_boss().tab_for_id(data['tab_id'])
     if tab is None:
         return ''
-    # name is only set when the tab was renamed with set_tab_title
-    return f' {tab.name}' if tab.name else ''
+    parts = []
+    if emoji := getattr(tab, 'tab_emoji', None):  # set by tab_colors.py
+        parts.append(emoji)
+    if tab.name:  # only set when renamed with set_tab_title
+        parts.append(tab.name)
+    return ' ' + ' '.join(parts) if parts else ''
