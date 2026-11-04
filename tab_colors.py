@@ -6,6 +6,19 @@
 # colour and emoji are stored on the tab itself, so they follow the tab when it
 # is moved. tab_bar.py draws the emoji next to the tab number.
 
+# It also keeps the Claude Code attention marker (user var `claude`, set by
+# claude_attention.sh) in sync: the tab bar is redrawn when it changes, and
+# the marker is cleared once you focus the window.
+
+import sys
+
+from kitty.constants import config_dir
+
+if config_dir not in sys.path:
+    sys.path.insert(0, config_dir)
+
+from tabinfo import STATE_VAR
+
 # accent colours from themes/my-theme.conf (Kaolin Ocean), each with a
 # matching emoji
 PALETTE = (
@@ -47,3 +60,20 @@ def on_tab_bar_dirty(boss, window, data) -> None:
             tab.tab_color, tab.tab_emoji = color, _ = pick_entry(tabs)
             tab.active_bg, tab.active_fg = blend(0xffffff, color, ACTIVE_LIGHTEN), BACKGROUND
             tab.inactive_bg, tab.inactive_fg = blend(color, 0x000000, INACTIVE_KEEP), FOREGROUND
+
+
+def _redraw(boss, window) -> None:
+    tab = boss.tab_for_id(window.tab_id)
+    if tab is not None:
+        tab.mark_tab_bar_dirty()
+
+
+def on_set_user_var(boss, window, data) -> None:
+    if data['key'] == STATE_VAR:
+        _redraw(boss, window)
+
+
+def on_focus_change(boss, window, data) -> None:
+    # looking at the window acknowledges "waiting" / "done"; "busy" stays
+    if data['focused'] and window.user_vars.get(STATE_VAR) in ('waiting', 'done'):
+        window.set_user_var(STATE_VAR, None)
